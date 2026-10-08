@@ -1,0 +1,6 @@
+# Modelos locales (opcional hasta provisionar modelos). NO verificados en el entorno de desarrollo (sin red a PyPI/HF).
+faster-whisper==1.1.1
+# llama-cpp-python: usar wheel precompilada para evitar compilador en Windows:
+#   pip install llama-cpp-python==0.3.8 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+llama-cpp-python==0.3.8
+huggingface_hub>=0.24

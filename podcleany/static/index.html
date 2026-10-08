@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PodCleany</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2230;--mut:#5d667a;--line:#d9dde6;--acc:#2457d6;--ad:#c0392b;--pos:#b9770e;--ok:#1e8449}
+@media (prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1b2030;--ink:#e8ebf2;--mut:#9aa3b8;--line:#2d3550;--acc:#6e97ff;--ad:#ff7b6b;--pos:#f0b429;--ok:#52c27f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,Segoe UI,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}h1{font-size:1.5rem;margin:.2rem 0 1rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;font-size:.85rem}.steps span{padding:3px 10px;border-radius:99px;border:1px solid var(--line);color:var(--mut)}
+.steps span.on{background:var(--acc);border-color:var(--acc);color:#fff}
+input[type=text]{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:1rem}
+button{padding:9px 14px;border-radius:8px;border:1px solid var(--acc);background:var(--acc);color:#fff;font-size:.95rem;cursor:pointer}
+button.sec{background:transparent;color:var(--acc)}button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.grow{flex:1}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden}.bar>i{display:block;height:100%;background:var(--acc);width:0;transition:width .3s}
+.err{color:var(--ad);font-weight:600}.mut{color:var(--mut)}.ok{color:var(--ok)}
+.head{display:flex;gap:14px}.head img{width:96px;height:96px;border-radius:8px;object-fit:cover}
+#timeline{position:relative;height:46px;background:var(--bg);border:1px solid var(--line);border-radius:8px;margin:10px 0;overflow:hidden;cursor:pointer}
+.seg{position:absolute;top:0;bottom:0;font-size:.7rem;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;padding:2px 4px;overflow:hidden;white-space:nowrap}
+.seg.detected{background:var(--ad)}.seg.possible,.seg.user{background:repeating-linear-gradient(45deg,var(--pos),var(--pos) 6px,#00000033 6px,#00000033 9px)}.seg.kept{opacity:.35}
+#cursor{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);pointer-events:none}
+.legend{font-size:.85rem;color:var(--mut)}.legend b{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin:0 4px 0 10px}
+.item{border-top:1px solid var(--line);padding:10px 0}.item input[type=text]{width:90px;padding:5px}
+.tag{font-size:.75rem;padding:2px 8px;border-radius:99px;color:#fff}.tag.detected{background:var(--ad)}.tag.possible,.tag.user{background:var(--pos)}
+audio{width:100%;margin-top:8px}details summary{cursor:pointer;color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+<h1>PodCleany</h1>
+<div class="steps" id="steps"><span>1 Pegar enlace</span><span>2 Analizar</span><span>3 Revisar</span><span>4 Generar audio</span><span>5 Descargar</span></div>
+
+<section class="card" id="s-input">
+  <label for="url"><b>Enlace del episodio o del RSS</b></label>
+  <div class="row" style="margin-top:8px"><input class="grow" type="text" id="url" placeholder="https://…"><button id="go">Analizar episodio</button></div>
+  <div id="in-msg" class="err" role="alert"></div>
+</section>
+
+<section class="card" id="s-prog" hidden>
+  <div id="prog-msg"><b>Analizando…</b></div><div class="bar" style="margin:8px 0"><i id="prog-bar"></i></div>
+  <div id="prog-err" class="err" role="alert"></div>
+</section>
+
+<section class="card" id="s-ep" hidden>
+  <div class="head"><img id="cover" alt="" hidden><div><h2 id="ep-title" style="margin:0"></h2><div class="mut" id="ep-ch"></div><div class="mut" id="ep-dur"></div></div></div>
+  <details style="margin-top:8px"><summary>Descripción</summary><p id="ep-desc" class="mut"></p></details>
+  <audio id="player" controls preload="metadata"></audio>
+  <div id="timeline" aria-label="Línea de tiempo del audio original"><div id="cursor"></div></div>
+  <div class="legend"><b style="background:var(--ad)"></b>Anuncio detectado<b style="background:var(--pos)"></b>Posible anuncio (revise)<span id="tl-len" style="float:right"></span></div>
+  <div id="segs"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="sec" id="mark-start">Inicio aquí</button><button class="sec" id="mark-end">Fin aquí</button>
+    <button class="sec" id="add-missed">Marcar anuncio omitido</button><span class="mut" id="missed-info"></span>
+  </div>
+  <p id="summary" class="mut"></p>
+  <div class="row"><button id="render">Generar audio sin anuncios</button><span id="render-msg" class="mut"></span></div>
+  <div id="result" hidden class="card" style="margin:12px 0 0">
+    <b class="ok">Audio listo</b>
+    <div id="res-info" class="mut"></div>
+    <audio id="player-clean" controls preload="metadata"></audio>
+    <div class="row" style="margin-top:8px"><a id="dl" download><button>Descargar audio</button></a><span id="dl-name" class="mut"></span></div>
+  </div>
+</section>
+
+<section class="card"><h3 style="margin-top:0">Mi biblioteca</h3><div id="lib" class="mut">Aún no hay episodios.</div></section>
+<p class="mut" style="font-size:.8rem">Todo se procesa en este equipo. Solo se descarga el episodio desde el sitio del podcast. Respete los derechos del contenido: use esta herramienta solo con material que tenga derecho a modificar para uso personal.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);let EP=null,startMark=null,endMark=null,jobES=null;
+const fmt=s=>{s=Math.max(0,s||0);const m=Math.floor(s/60),x=Math.floor(s%60);return m+':'+String(x).padStart(2,'0')};
+const parse=t=>{const p=String(t).trim().split(':').map(Number);return p.some(isNaN)?NaN:p.reduce((a,b)=>a*60+b,0)};
+async function api(path,opt){const r=await fetch(path,opt);if(!r.ok){let d='Error';try{d=(await r.json()).detail||d}catch(e){}throw new Error(d)}return r.status===204?null:r.json()}
+const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})});
+const patch=(p,b)=>api(p,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+function step(n){[...$('steps').children].forEach((e,i)=>e.classList.toggle('on',i+1===n))}
+
+$('go').onclick=async()=>{
+  $('in-msg').textContent='';
+  try{const r=await post('/episodes',{url:$('url').value});watch(r.job_id,'process')}catch(e){$('in-msg').textContent=e.message}
+};
+function watch(jobId,kind){
+  if(jobES)jobES.close();
+  $('s-prog').hidden=false;$('prog-err').textContent='';step(kind==='process'?2:4);
+  jobES=new EventSource('/jobs/'+jobId+'/events');
+  jobES.onmessage=async ev=>{
+    const j=JSON.parse(ev.data);$('prog-bar').style.width=Math.round(j.progress*100)+'%';
+    $('prog-msg').innerHTML='<b>'+(j.message||'Trabajando…')+'</b> <span class="mut">'+Math.round(j.progress*100)+'%</span>';
+    if(j.status==='failed'){jobES.close();$('prog-err').textContent=j.error||'Ocurrió un error.';$('render').disabled=false}
+    if(j.status==='done'){jobES.close();$('s-prog').hidden=true;await openEp(j.episode_id);refreshLib()}
+  };
+  jobES.onerror=()=>{/* la API se reconecta sola; el worker puede reiniciarse */};
+}
+async function openEp(id){EP=await api('/episodes/'+id);draw();}
+function draw(){
+  $('s-ep').hidden=false;step(3);
+  $('ep-title').textContent=EP.title;$('ep-ch').textContent=EP.channel;$('ep-dur').textContent='Duración original: '+fmt(EP.duration);
+  $('ep-desc').textContent=EP.description||'Sin descripción.';
+  const c=$('cover');c.hidden=!EP.has_cover;if(EP.has_cover)c.src='/episodes/'+EP.id+'/cover';
+  const p=$('player');if(!p.src.endsWith('/audio/original'))p.src='/episodes/'+EP.id+'/audio/original';
+  $('tl-len').textContent='Tiempos del audio original';
+  const tl=$('timeline');[...tl.querySelectorAll('.seg')].forEach(e=>e.remove());
+  EP.segments.forEach(s=>{const d=document.createElement('div');d.className='seg '+(s.kind==='user'?'possible':s.kind)+(s.decision==='keep'?' kept':'');
+    d.style.left=s.start/EP.duration*100+'%';d.style.width=Math.max(.6,(s.end-s.start)/EP.duration*100)+'%';
+    d.textContent=(s.kind==='detected'?'Anuncio':'Posible')+(s.decision==='keep'?' · se conserva':'');d.title=fmt(s.start)+'–'+fmt(s.end);tl.appendChild(d)});
+  const box=$('segs');box.innerHTML='';
+  if(!EP.segments.length)box.innerHTML='<p class="ok">No se detectaron anuncios en este episodio.</p>';
+  EP.segments.forEach((s,i)=>{
+    const d=document.createElement('div');d.className='item';
+    const tagTxt=s.kind==='detected'?'Anuncio detectado':s.kind==='user'?'Marcado por usted':'Posible anuncio';
+    d.innerHTML=`<div class="row"><span class="tag ${s.kind}">${tagTxt}</span><b>${fmt(s.start)} – ${fmt(s.end)}</b><span class="mut grow">${s.decision==='remove'?'Se quitará':'Se conservará'}</span></div>
+    <div class="row" style="margin-top:6px"><button class="sec" data-a="play">▶ Escuchar tramo</button>
+    <button class="sec" data-a="${s.decision==='remove'?'keep':'remove'}">${s.decision==='remove'?'Conservar':'Quitar'}</button>
+    <span>Inicio <input type="text" value="${fmt(s.start)}" data-f="s"></span><span>Fin <input type="text" value="${fmt(s.end)}" data-f="e"></span>
+    <button class="sec" data-a="adjust">Ajustar</button><button class="sec" data-a="undo" ${s.can_undo?'':'disabled'}>Deshacer</button></div>`;
+    d.onclick=async ev=>{const a=ev.target.dataset.a;if(!a)return;
+      try{
+        if(a==='play'){const p=$('player');p.currentTime=Math.max(0,s.start-2);p.play();const stop=()=>{if(p.currentTime>=s.end){p.pause();p.removeEventListener('timeupdate',stop)}};p.addEventListener('timeupdate',stop);return}
+        if(a==='undo')await post('/segments/'+s.id+'/undo');
+        else if(a==='adjust'){const st=parse(d.querySelector('[data-f=s]').value),en=parse(d.querySelector('[data-f=e]').value);if(isNaN(st)||isNaN(en)||en<=st)throw new Error('Tiempos no válidos (use m:ss)');await patch('/segments/'+s.id,{start:st,end:en,decision:'remove'})}
+        else await patch('/segments/'+s.id,{decision:a});
+        await openEp(EP.id)}catch(e){alert(e.message)}};
+    box.appendChild(d)});
+  const rem=EP.segments.filter(s=>s.decision==='remove').reduce((a,s)=>a+s.end-s.start,0);
+  $('summary').textContent='Se quitarán aprox. '+fmt(rem)+' · duración final aprox. '+fmt(EP.duration-rem);
+  const cl=EP.clean;$('result').hidden=!cl.ready;
+  if(cl.ready){step(5);$('res-info').textContent='Duración final '+fmt(cl.duration)+' · tiempo retirado '+fmt(cl.removed);
+    $('dl').href='/episodes/'+EP.id+'/audio/clean?download=1';$('dl-name').textContent=cl.name+' ('+cl.format+')';
+    const pc=$('player-clean');if(!pc.src.includes('/clean'))pc.src='/episodes/'+EP.id+'/audio/clean'}
+  else if(cl.stale){$('render-msg').textContent='Hay cambios sin aplicar: genere el audio de nuevo.'}
+}
+$('player').addEventListener('timeupdate',()=>{if(EP)$('cursor').style.left=$('player').currentTime/EP.duration*100+'%'});
+$('timeline').onclick=ev=>{if(!EP)return;const r=$('timeline').getBoundingClientRect();$('player').currentTime=(ev.clientX-r.left)/r.width*EP.duration};
+$('mark-start').onclick=()=>{startMark=$('player').currentTime;mi()};$('mark-end').onclick=()=>{endMark=$('player').currentTime;mi()};
+const mi=()=>$('missed-info').textContent=(startMark!=null?'Inicio '+fmt(startMark):'')+(endMark!=null?' · Fin '+fmt(endMark):'');
+$('add-missed').onclick=async()=>{
+  if(startMark==null||endMark==null||endMark<=startMark)return alert('Reproduzca hasta donde empieza el anuncio y pulse "Inicio aquí"; luego hasta donde termina y pulse "Fin aquí".');
+  try{await post('/episodes/'+EP.id+'/segments',{start:startMark,end:endMark});startMark=endMark=null;mi();await openEp(EP.id)}catch(e){alert(e.message)}};
+$('render').onclick=async()=>{
+  $('render').disabled=true;$('render-msg').textContent='';
+  try{const r=await post('/episodes/'+EP.id+'/render');watch2(r.job_id)}catch(e){$('render-msg').textContent=e.message;$('render').disabled=false}};
+function watch2(jobId){
+  const es=new EventSource('/jobs/'+jobId+'/events');$('render-msg').textContent='Generando…';
+  es.onmessage=async ev=>{const j=JSON.parse(ev.data);
+    if(j.status==='failed'){es.close();$('render-msg').innerHTML='<span class="err">'+(j.error||'Error')+'</span>';$('render').disabled=false}
+    if(j.status==='done'){es.close();$('render-msg').textContent='';$('render').disabled=false;$('player-clean').removeAttribute('src');await openEp(EP.id);refreshLib()}}}
+async function refreshLib(){
+  const l=await api('/library');if(!l.length)return;
+  $('lib').innerHTML='';l.forEach(e=>{const d=document.createElement('div');d.className='item row';
+    d.innerHTML=`<span class="grow"><b>${e.title.replace(/</g,'&lt;')}</b><br><span class="mut">${e.channel.replace(/</g,'&lt;')} · ${e.status==='done'||e.status==='ready'?fmt(e.duration_s):e.status}</span></span>`+
+      (e.status==='ready'||e.status==='done'?'<button class="sec">Abrir</button>':'')+(e.has_clean?`<a href="/episodes/${e.id}/audio/clean?download=1"><button class="sec">Descargar</button></a>`:'');
+    const b=d.querySelector('button');if(b)b.onclick=()=>{$('player').removeAttribute('src');openEp(e.id)};$('lib').appendChild(d)})}
+refreshLib();
+</script>
+</body>
+</html>

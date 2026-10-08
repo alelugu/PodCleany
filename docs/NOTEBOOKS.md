@@ -1,0 +1,3 @@
+# Notebooks
+
+Orden: `00_setup_datos_demo` → `01_normalizacion` → `02_fingerprints` → `03_senales` → `04_transcripcion_llm` → `05_decision_y_corte` → `06_integracion` → (`07_interfaz_voila`, opcional). Cada uno: *Kernel limpio → Run All*. Dependen de los artefactos del anterior en `<tmp>/podcleany_nb` (00 primero; 04→05 vía `cands.json`). Verificado: 00–06 ejecutan sin errores con `nbclient` desde kernel limpio (Linux). Comparten `notebooks/_common.py` y el paquete `podcleany`; el procesamiento pesado nunca corre en el kernel de la interfaz (06 lanza API y worker como procesos separados). Fuente única: `scripts/make_notebooks.py`.
