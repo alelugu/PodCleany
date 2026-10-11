@@ -101,7 +101,7 @@ function draw(){
   $('ep-title').textContent=EP.title;$('ep-ch').textContent=EP.channel;$('ep-dur').textContent='Duración original: '+fmt(EP.duration);
   $('ep-desc').textContent=EP.description||'Sin descripción.';
   const c=$('cover');c.hidden=!EP.has_cover;if(EP.has_cover)c.src='/episodes/'+EP.id+'/cover';
-  const p=$('player');if(!p.src.endsWith('/audio/original'))p.src='/episodes/'+EP.id+'/audio/original';
+  const p=$('player');const want='/episodes/'+EP.id+'/audio/original';if(!p.src.endsWith(want)){p.src=want;$('result').hidden=true;$('player-clean').removeAttribute('src')} // al cambiar de episodio hay que cambiar también el audio
   $('tl-len').textContent='Tiempos del audio original';
   const tl=$('timeline');[...tl.querySelectorAll('.seg')].forEach(e=>e.remove());
   EP.segments.forEach(s=>{const d=document.createElement('div');d.className='seg '+(s.kind==='user'?'possible':s.kind)+(s.decision==='keep'?' kept':'');
@@ -131,7 +131,7 @@ function draw(){
   const cl=EP.clean;$('result').hidden=!cl.ready;
   if(cl.ready){step(5);$('res-info').textContent='Duración final '+fmt(cl.duration)+' · tiempo retirado '+fmt(cl.removed);
     $('dl').href='/episodes/'+EP.id+'/audio/clean?download=1';$('dl-name').textContent=cl.name+' ('+cl.format+')';
-    const pc=$('player-clean');if(!pc.src.includes('/clean'))pc.src='/episodes/'+EP.id+'/audio/clean'}
+    const pc=$('player-clean');const wc='/episodes/'+EP.id+'/audio/clean';if(!pc.src.endsWith(wc))pc.src=wc}
   else if(cl.stale){$('render-msg').textContent='Hay cambios sin aplicar: genere el audio de nuevo.'}
 }
 $('player').addEventListener('timeupdate',()=>{if(EP)$('cursor').style.left=$('player').currentTime/EP.duration*100+'%'});
