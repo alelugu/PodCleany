@@ -314,7 +314,7 @@ def render(cfg, conn, job) -> None:
         out_dir = cfg.library_dir / safe_name(ep["channel"])
         dst = out_dir / f"{safe_name(ep['title'])} (sin anuncios).mp3"
         lg.info("Render: %d cortes %s", len(removals), [(round(a, 1), round(b, 1)) for a, b in removals])
-        final = audio.render_clean(Path(ep["original_path"]), dst, ep["duration_s"], removals, cfg.crossfade_ms, cfg.min_keep_seconds)
+        dst, final = audio.render_clean_path(Path(ep["original_path"]), dst, ep["duration_s"], removals, cfg.crossfade_ms, cfg.min_keep_seconds)
         removed = max(0.0, ep["duration_s"] - final)
         touch_episode(conn, ep_id, status="done", clean_path=str(dst), clean_duration_s=final, removed_s=removed, clean_stale=0, error=None)
         update_job(conn, job["id"], status="done", stage="done", progress=1.0, message="Audio listo",

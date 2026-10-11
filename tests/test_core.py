@@ -94,3 +94,23 @@ def test_stale_running_job_is_requeued(tmp_path):
     conn.execute("UPDATE jobs SET heartbeat_at=? WHERE id=?", (time.time() - 1000, jid))
     assert requeue_stale(conn, 60) == 1
     assert claim_job(conn, "w2")["id"] == jid                # otro worker lo retoma
+
+
+def test_render_survives_locked_destination(tmp_path, monkeypatch):
+    """Windows: no se puede reemplazar un MP3 abierto por el navegador; debe guardarse con otro nombre."""
+    import os
+    x, _ = synth.make_episode([("speech", 20, 1), ("ad", 10, 5), ("speech", 20, 2)])
+    src, dst = tmp_path / "o.mp3", tmp_path / "c.mp3"
+    synth.to_mp3(x, src)
+    dur = audio.probe_duration(src)
+    audio.render_clean_path(src, dst, dur, [(20, 30)], 60, 0.25)
+    real = os.replace
+    def locked(a, b):
+        if Path(b) == dst:
+            raise PermissionError(5, "Access is denied")
+        return real(a, b)
+    monkeypatch.setattr(os, "replace", locked)
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    path, d = audio.render_clean_path(src, dst, dur, [(20, 30)], 60, 0.25)
+    assert path.name == "c (2).mp3" and path.exists() and d > 30
+    assert not list(tmp_path.glob("*.part.mp3"))
