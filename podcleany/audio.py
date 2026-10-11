@@ -164,9 +164,41 @@ def keep_intervals(duration: float, removals: list[tuple[float, float]], min_kee
     return keeps
 
 
+def _publish(tmp: Path, dst: Path) -> Path:
+    """Mueve tmp -> dst. En Windows no se puede reemplazar un archivo abierto (p. ej. el reproductor del
+    navegador lo está leyendo): se reintenta y, si sigue bloqueado, se guarda con otro nombre ("… (2).mp3")."""
+    import time
+    for _ in range(5):
+        try:
+            os.replace(tmp, dst)
+            return dst
+        except PermissionError:
+            time.sleep(0.4)
+    n = 2
+    while True:
+        alt = dst.with_name(f"{dst.stem} ({n}){dst.suffix}")
+        try:
+            if not alt.exists():
+                os.replace(tmp, alt)
+                return alt
+        except PermissionError:
+            pass
+        n += 1
+        if n > 99:
+            raise PermissionError(f"No se pudo guardar {dst.name}: cierre el reproductor que lo usa e intente de nuevo.")
+
+
 def render_clean(src: Path, dst: Path, duration: float, removals: list[tuple[float, float]],
                  crossfade_ms: int, min_keep: float) -> float:
-    """Genera el MP3 final a partir del ORIGINAL (nunca se sobrescribe) con crossfade breve."""
+    """Como render_clean_path pero devuelve solo la duración final."""
+    return render_clean_path(src, dst, duration, removals, crossfade_ms, min_keep)[1]
+
+
+def render_clean_path(src: Path, dst: Path, duration: float, removals: list[tuple[float, float]],
+                      crossfade_ms: int, min_keep: float) -> tuple[Path, float]:
+    """Genera el MP3 final a partir del ORIGINAL (nunca se sobrescribe) con crossfade breve.
+
+    Devuelve (ruta real, duración): la ruta puede diferir de `dst` si éste estaba bloqueado."""
     keeps = keep_intervals(duration, removals, min_keep)
     if not keeps:
         raise RuntimeError("El resultado quedaría vacío: todo el episodio está marcado como anuncio.")
@@ -198,5 +230,5 @@ def render_clean(src: Path, dst: Path, duration: float, removals: list[tuple[flo
     if p.returncode != 0:
         tmp.unlink(missing_ok=True)
         raise RuntimeError("ffmpeg falló al generar el audio: " + p.stderr[-500:])
-    os.replace(tmp, dst)
-    return probe_duration(dst) or sum(e - s for s, e in keeps)
+    final = _publish(tmp, dst)
+    return final, (probe_duration(final) or sum(e - s for s, e in keeps))

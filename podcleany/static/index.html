@@ -142,6 +142,7 @@ $('add-missed').onclick=async()=>{
   if(startMark==null||endMark==null||endMark<=startMark)return alert('Reproduzca hasta donde empieza el anuncio y pulse "Inicio aquí"; luego hasta donde termina y pulse "Fin aquí".');
   try{await post('/episodes/'+EP.id+'/segments',{start:startMark,end:endMark});startMark=endMark=null;mi();await openEp(EP.id)}catch(e){alert(e.message)}};
 $('render').onclick=async()=>{
+  const pc=$('player-clean');pc.pause();pc.removeAttribute('src');pc.load(); // suelta el archivo (Windows no deja reemplazar un archivo abierto)
   $('render').disabled=true;$('render-msg').textContent='';
   try{const r=await post('/episodes/'+EP.id+'/render');watch2(r.job_id)}catch(e){$('render-msg').textContent=e.message;$('render').disabled=false}};
 function watch2(jobId){
