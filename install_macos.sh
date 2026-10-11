@@ -7,7 +7,10 @@ python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install --only-binary=:all: -r requirements.txt
 echo
-echo "Núcleo instalado ($(uname -m)). Para modelos locales, con conexión, ejecute UNA vez:"
-echo "  .venv/bin/python -m pip install --only-binary=:all: -r requirements-ml.txt"
-echo "  .venv/bin/python scripts/fetch_models.py"
-echo "Para iniciar: ./start_macos.sh"
+read -r -p "¿Descargar ahora los modelos de IA (≈1.5 GB, requiere Internet)? [s/N] " R
+if [[ "$R" =~ ^[sSyY]$ ]]; then
+  .venv/bin/python -m pip install --only-binary=:all: -r requirements-ml.txt || echo "No se pudieron instalar las librerías de IA."
+  .venv/bin/python scripts/fetch_models.py || echo "No se pudieron descargar los modelos; reintente con scripts/fetch_models.py"
+fi
+echo
+echo "Listo ($(uname -m)). Demostración sin modelos: ./demo_macos.sh   ·   Aplicación: ./start_macos.sh"

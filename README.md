@@ -13,8 +13,11 @@ saliente es la descarga del episodio desde el host del podcast.
 | Instalar | `install_windows.bat` | `./install_macos.sh` |
 | Iniciar | `start_windows.bat` | `./start_macos.sh` |
 
-Se abre `http://127.0.0.1:8765/`. Guía completa: [docs/INSTALACION.md](docs/INSTALACION.md) · [docs/GUIA_USUARIO.md](docs/GUIA_USUARIO.md).
+
 Modelos (Whisper + LLM): se provisionan una sola vez, con conexión, con `scripts/fetch_models.py`; sin ellos el sistema arranca pero avisa y usa un clasificador heurístico de respaldo y no transcribe.
+
+**Demostración sin modelos** (recomendada para la primera prueba): `demo_windows.bat` / `./demo_macos.sh` → [docs/DEMO.md](docs/DEMO.md).
+Los instaladores ofrecen descargar los modelos de IA (Hugging Face, ~1.5 GB) al final; también puede hacerlo desde el notebook `00a_instalar_modelos`.
 
 ## Arquitectura (resumen)
 `python -m podcleany start` lanza **dos procesos independientes**: la Local API (FastAPI, 127.0.0.1) y el worker. Se coordinan solo por la tabla `jobs` de SQLite (WAL). Detalle y diagrama: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md). Datos: [docs/DATOS.md](docs/DATOS.md).
