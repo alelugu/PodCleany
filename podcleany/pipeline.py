@@ -118,6 +118,8 @@ def process(cfg, conn, job, backends) -> None:
                     touch_episode(conn, ep_id, cover_path=str(cover))
         lg = episode_logger(cfg, ep_id)
         ep = conn.execute("SELECT * FROM episodes WHERE id=?", (ep_id,)).fetchone()
+        if hasattr(transcriber, "set_context"):  # solo la demo (transcripción simulada) lo usa
+            transcriber.set_context(ep)
         for w in backend_warnings:
             lg.warning(w)
         lg.info("Procesando '%s' (%s) con STT=%s LLM=%s", ep["title"], ep["audio_url"],

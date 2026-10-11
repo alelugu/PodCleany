@@ -78,6 +78,7 @@ const post=(p,b)=>api(p,{method:'POST',headers:{'Content-Type':'application/json
 const patch=(p,b)=>api(p,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
 function step(n){[...$('steps').children].forEach((e,i)=>e.classList.toggle('on',i+1===n))}
 
+const qs=new URLSearchParams(location.search).get('url');if(qs)$('url').value=qs;
 $('go').onclick=async()=>{
   $('in-msg').textContent='';
   try{const r=await post('/episodes',{url:$('url').value});watch(r.job_id,'process')}catch(e){$('in-msg').textContent=e.message}
@@ -110,16 +111,17 @@ function draw(){
   if(!EP.segments.length)box.innerHTML='<p class="ok">No se detectaron anuncios en este episodio.</p>';
   EP.segments.forEach((s,i)=>{
     const d=document.createElement('div');d.className='item';
-    const tagTxt=s.kind==='detected'?'Anuncio detectado':s.kind==='user'?'Marcado por usted':'Posible anuncio';
-    d.innerHTML=`<div class="row"><span class="tag ${s.kind}">${tagTxt}</span><b>${fmt(s.start)} – ${fmt(s.end)}</b><span class="mut grow">${s.decision==='remove'?'Se quitará':'Se conservará'}</span></div>
+    const tagTxt=s.source==='fingerprint'?'Anuncio ya conocido':s.kind==='detected'?'Anuncio detectado':s.kind==='user'?'Marcado por usted':'Posible anuncio';
+    d.innerHTML=`<div class="row"><span class="tag ${s.kind}">${tagTxt}</span><b>${fmt(s.start)} – ${fmt(s.end)}</b><span class="mut grow">${s.decision==='remove'?'Se quitará':'Se conservará'}</span></div>${s.reason?`<div class="mut" style="font-size:.8rem">${s.reason.replace(/</g,'&lt;')}</div>`:''}
     <div class="row" style="margin-top:6px"><button class="sec" data-a="play">▶ Escuchar tramo</button>
     <button class="sec" data-a="${s.decision==='remove'?'keep':'remove'}">${s.decision==='remove'?'Conservar':'Quitar'}</button>
     <span>Inicio <input type="text" value="${fmt(s.start)}" data-f="s"></span><span>Fin <input type="text" value="${fmt(s.end)}" data-f="e"></span>
-    <button class="sec" data-a="adjust">Ajustar</button><button class="sec" data-a="undo" ${s.can_undo?'':'disabled'}>Deshacer</button></div>`;
+    <button class="sec" data-a="adjust">Ajustar</button><button class="sec" data-a="protect" title="Marca este tramo como contenido que nunca se debe quitar (p. ej. su intro)">Conservar y proteger</button><button class="sec" data-a="undo" ${s.can_undo?'':'disabled'}>Deshacer</button></div>`;
     d.onclick=async ev=>{const a=ev.target.dataset.a;if(!a)return;
       try{
         if(a==='play'){const p=$('player');p.currentTime=Math.max(0,s.start-2);p.play();const stop=()=>{if(p.currentTime>=s.end){p.pause();p.removeEventListener('timeupdate',stop)}};p.addEventListener('timeupdate',stop);return}
         if(a==='undo')await post('/segments/'+s.id+'/undo');
+        else if(a==='protect'){await patch('/segments/'+s.id,{decision:'keep'});await post('/episodes/'+EP.id+'/protect',{start:s.start,end:s.end,label:'protegido'})}
         else if(a==='adjust'){const st=parse(d.querySelector('[data-f=s]').value),en=parse(d.querySelector('[data-f=e]').value);if(isNaN(st)||isNaN(en)||en<=st)throw new Error('Tiempos no válidos (use m:ss)');await patch('/segments/'+s.id,{start:st,end:en,decision:'remove'})}
         else await patch('/segments/'+s.id,{decision:a});
         await openEp(EP.id)}catch(e){alert(e.message)}};

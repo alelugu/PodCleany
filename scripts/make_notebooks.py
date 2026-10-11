@@ -17,6 +17,12 @@ def nb(title, cells):
 
 
 NOTEBOOKS = {
+"00a_instalar_modelos": ("00a · Instalar los modelos de IA (paso previo, una sola vez)", [
+    ("md", "Instala las librerías de IA y descarga los modelos **desde Hugging Face** (necesita Internet y ~1.5 GB):\n\n- **Whisper small** (`Systran/faster-whisper-small`, conversión CTranslate2 del Whisper de OpenAI, licencia MIT): transcribe el audio.\n- **Qwen2.5-1.5B-Instruct q4_k_m** (`Qwen/Qwen2.5-1.5B-Instruct-GGUF`, de Alibaba, licencia Apache-2.0): decide si un fragmento es publicidad.\n\nSe guardan en la carpeta de datos de PodCleany (`models/`). Después, el sistema funciona sin descargar nada más de modelos."),
+    ("code", HEAD + "import subprocess, sys\nreq = ROOT / 'requirements-ml.txt'\nsubprocess.run([sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', '-r', str(req)], check=True)"),
+    ("code", "subprocess.run([sys.executable, str(ROOT / 'scripts' / 'fetch_models.py')], check=True)"),
+    ("code", "from podcleany.config import Config\nfrom podcleany.models import make_backends\nstt, clf, warns = make_backends(Config.load())\nprint('Transcriptor:', stt.name, '| Clasificador:', clf.name)\nprint('Avisos:', warns or 'ninguno: modelos listos')"),
+]),
 "00_setup_datos_demo": ("00 · Preparación y datos de demostración", [
     ("md", "Genera audio sintético reproducible (no es voz real) y un feed RSS local. Sirve a los demás notebooks."),
     ("code", HEAD + "W = workdir(); web = W / 'web'\nep1, m1, ep2, m2 = make_demo_site(web)\nprint(m1)\nprint(sorted(p.name for p in web.iterdir()))"),

@@ -6,7 +6,11 @@ py -3 -m venv .venv || exit /b 1
 call .venv\Scripts\python -m pip install --upgrade pip || exit /b 1
 call .venv\Scripts\python -m pip install --only-binary=:all: -r requirements.txt || exit /b 1
 echo.
-echo Nucleo instalado. Para modelos locales (Whisper + LLM), con conexion, ejecute UNA vez:
-echo   .venv\Scripts\python -m pip install --only-binary=:all: -r requirements-ml.txt
-echo   .venv\Scripts\python scripts\fetch_models.py
-echo Para iniciar: start_windows.bat
+set /p R=Descargar ahora los modelos de IA (aprox. 1.5 GB, requiere Internet)? [S/N]: 
+if /i "%R%"=="S" (
+  call .venv\Scripts\python -m pip install --only-binary=:all: -r requirements-ml.txt || echo No se pudieron instalar las librerias de IA.
+  call .venv\Scripts\python scripts\fetch_models.py || echo No se pudieron descargar los modelos; reintente luego con scripts\fetch_models.py
+)
+echo.
+echo Listo. Para ver una demostracion sin modelos: demo_windows.bat
+echo Para usar la aplicacion: start_windows.bat

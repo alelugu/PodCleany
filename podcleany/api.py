@@ -192,6 +192,14 @@ def create_app(cfg: Config | None = None) -> FastAPI:
                 raise HTTPException(404, "Episodio no encontrado")
             if e["status"] not in ("ready", "done"):
                 raise HTTPException(409, "El episodio aún se está analizando")
+            # Generar el audio confirma implícitamente lo que se quita: se aprenden las huellas de esos tramos
+            # (los anuncios ya conocidos por huella y los ya aprendidos se omiten).
+            e_full = conn.execute("SELECT * FROM episodes WHERE id=?", (ep_id,)).fetchone()
+            for sg in conn.execute("SELECT * FROM ad_segments WHERE episode_id=? AND fingerprint_id IS NULL", (ep_id,)).fetchall():
+                if (sg["user_decision"] or ("remove" if sg["auto_decision"] == "remove" else "keep")) == "remove":
+                    fid = learn(conn, e_full, sg["start_s"], sg["end_s"])
+                    if fid:
+                        conn.execute("UPDATE ad_segments SET fingerprint_id=? WHERE id=?", (fid, sg["id"]))
             # cada generación es un job nuevo (dedupe solo frente a uno activo)
             active = conn.execute("SELECT id FROM jobs WHERE kind='render' AND episode_id=? AND status IN ('queued','running')", (ep_id,)).fetchone()
             if active:
