@@ -1,6 +1,7 @@
-# Modelos locales (opcional hasta provisionar modelos). NO verificados en el entorno de desarrollo (sin red a PyPI/HF).
+# Modelos locales (opcional hasta provisionar modelos). NO verificados en el entorno de desarrollo (sin acceso a Hugging Face).
+# llama-cpp-python no publica ruedas (wheels) en PyPI para Windows/macOS: se usa su índice de ruedas precompiladas (CPU)
+# para no necesitar compilador.
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 faster-whisper==1.1.1
-# llama-cpp-python: usar wheel precompilada para evitar compilador en Windows:
-#   pip install llama-cpp-python==0.3.8 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 llama-cpp-python==0.3.8
 huggingface_hub>=0.24
