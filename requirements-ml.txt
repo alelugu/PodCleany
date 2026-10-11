@@ -3,5 +3,5 @@
 # para no necesitar compilador.
 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 faster-whisper==1.1.1
-llama-cpp-python==0.3.8
+llama-cpp-python>=0.3.18,<0.4   # 0.3.8 no existe como rueda en ese índice (verificado por el error en Windows, Python 3.12)
 huggingface_hub>=0.24
